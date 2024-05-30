@@ -20,36 +20,33 @@ public class AIService {
 
 	public String planner(String city) {
 		PromptTemplate promptTemplate = new PromptTemplate(
-				"""
-						 Please plan a one day trip to the {city}. Make sure I cover all the important places to see around.
-						 Also give me some suggestions for restaurants. I wont be staying any where in the city. I am travelling with my family. Also include time to reach places.
-						 Give me in readable format. The content should be to the point. Also include total drive of my iternary in km.
-						 Give me answer in seperate lines with full stops only at end. Start with new line always
-						""");
+				""" 
+ 				Give me in json format.use the city - {city} for a 1 day trip and each object should contain the following fields, places to visit or things to do as palces,distance from city center as distance, time needed to complete the activity as RequiredTime, pocket friendly good local place to have food with address in same line nearby that place as foodOptions.
+					Make sure I dont miss the famous places. Give me the sorted list, so that it is convinient to travel from list of places that you give me. take care of directions.
+					I dont need nested json structure. just give me objects in a single parent object-activities	""");
 		promptTemplate.add("city", city);
 		return this.aiClient.generate(promptTemplate.create()).getGeneration().getText();
 	}
 
 	// generate output in the JSON format via Prompting
-	public String getChargePlan(String car, String range, String source, String Destination) {
-		PromptTemplate promptTemplate = new PromptTemplate(
-				"""
-						Please provide iternary details about charging stations which i will need for the mentioned {car}
-						with the given {range} starting from central part of {source} till {destination} (both to and fro).
-						Also give me an estimate of cost of my charge at each charging station.
-						Give me total cost of trip at last.
-						Dont number my steps. Just break line when you finish with one sentence
-						Give me answer in seperate lines with full stops only at end. Start with new line always.
-						Dont use any special characters like - or :.
-						 
-						""");
-		promptTemplate.add("car", car);
-		promptTemplate.add("range", range);
-		promptTemplate.add("source", source);
-		promptTemplate.add("destination", Destination);
+	public String getChargePlan(String car, String range, String source, String destination) {
+	    PromptTemplate promptTemplate = new PromptTemplate(
+	            """
+	            Using the car model {car} with a range of {range} km, provide a detailed charging plan for a trip from {source} to {destination} and back, finding chargers on the way. Only calculate the charging that i need to reach my destination.Assume that i am leaving at 0% charge. 
+	            Return the result in JSON format with the following structure:
+	            give me in 2 parent objects - going and returning.
+	            Each of them should contain "name"- name of the charging station, "address" -address of the station, "pricePerKwh" - price to charge per kwh and "coffeeShop" nearby coffee shop of that charger.
+	            
+	            at end give me "totalCost" - as toital cost of charging on entire trip.
+	            Make sure to include both going and returning trips and calculate the total cost
+	            """);
+	    promptTemplate.add("car", car);
+	    promptTemplate.add("range", range);
+	    promptTemplate.add("source", source);
+	    promptTemplate.add("destination", destination);
 
-		AiResponse generate = this.aiClient.generate(promptTemplate.create());
-		return generate.getGeneration().getText();
+	    AiResponse generate = this.aiClient.generate(promptTemplate.create());
+	    return generate.getGeneration().getText();
 	}
 
 }
