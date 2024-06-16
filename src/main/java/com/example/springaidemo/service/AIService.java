@@ -28,7 +28,6 @@ public class AIService {
 		return this.aiClient.generate(promptTemplate.create()).getGeneration().getText();
 	}
 
-	// generate output in the JSON format via Prompting
 	public String getChargePlan(String car, String range, String source, String destination) {
 	    PromptTemplate promptTemplate = new PromptTemplate(
 	            """

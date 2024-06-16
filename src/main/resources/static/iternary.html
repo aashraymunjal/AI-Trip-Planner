@@ -6,6 +6,9 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Itinerary Planning</title>
 	<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+	<script
+		src="https://maps.googleapis.com/maps/api/js?key=&libraries=places"></script>
+
 	<style>
 		body {
 			font-family: Arial, sans-serif;
@@ -15,11 +18,9 @@
 			background: url("./images/Pathar.jpg") no-repeat center center/cover;
 			color: white;
 			padding: 150px 0;
-			/* Increased padding */
 			text-align: center;
 			position: relative;
 			height: 60vh;
-			/* Adjusted height */
 		}
 
 		.hero-overlay {
@@ -43,11 +44,15 @@
 		.navbar {
 			background-color: rgba(0, 0, 0, 0.8);
 		}
+
+		.button-container {
+			display: flex;
+			justify-content: center;
+		}
 	</style>
 </head>
 
 <body>
-	<!-- Header -->
 	<!-- Header -->
 	<nav class="navbar navbar-expand-lg navbar-dark fixed-top">
 		<a class="navbar-brand" href="index.html">AI RoadTrip Planner</a>
@@ -83,9 +88,13 @@
 		<h2 class="text-center">Plan Your Trip</h2>
 		<form id="itinerary-form">
 			<div class="form-group">
-				<input type="text" class="form-control" id="city" placeholder="Enter a city" required />
+				<input type="text" class="form-control" id="origin"
+					placeholder="Enter your starting point (origin city)" required />
 			</div>
-			<div class="text-center"> <!-- Add text-center class for center alignment -->
+			<div class="form-group">
+				<input type="text" class="form-control" id="city" placeholder="Enter a destination city" required />
+			</div>
+			<div class="text-center">
 				<button type="submit" class="btn btn-primary">Generate Itinerary</button>
 			</div>
 		</form>
@@ -97,10 +106,15 @@
 		<div class="card mb-3">
 			<div class="card-body">
 				<h5 class="card-title">Itinerary Details</h5>
-				<p id="itinerary-details" class="card-text">[Generated itinerary details will appear here]</p>
+				<div id="itinerary-details" class="card-text"></div>
 			</div>
 		</div>
+		<div class="button-container">
+			<button id="open-google-maps" class="btn btn-primary" style="display:none;">Open Trip in Google
+				Maps</button>
+		</div>
 	</div>
+
 	<!-- JavaScript code to handle form submission and send request to backend -->
 	<script>
 		document.addEventListener('DOMContentLoaded', function () {
@@ -108,6 +122,7 @@
 			form.addEventListener('submit', function (event) {
 				event.preventDefault();
 
+				const origin = document.getElementById('origin').value;
 				const city = document.getElementById('city').value;
 
 				// Send a GET request to the backend endpoint /askAI/plan?city=<city>
@@ -116,21 +131,79 @@
 						if (!response.ok) {
 							throw new Error('Network response was not ok');
 						}
-						return response.text();
+						return response.json(); // Parse the response as JSON
 					})
 					.then(data => {
-						// Add line breaks after periods in the generated itinerary details
-						data = data.replace(/\./g, '.<br>'); // Add line breaks after periods
-						// Display the generated itinerary details in the results section
-						document.getElementById('itinerary-details').innerHTML = data;
+						// Extract the activities from the JSON response
+						const activities = data.activities;
+
+						// Create a table to display the activities
+						let table = `
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Places</th>
+                                    <th>Distance from City Center</th>
+                                    <th>Time Needed</th>
+                                    <th>Food Options</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+
+						// Collect the places for the Google Maps URL
+						const places = [];
+
+						// Loop through each activity and create a table row
+						activities.forEach(activity => {
+							table += `
+                            <tr>
+                                <td>${activity.places}</td>
+                                <td>${activity.distance}</td>
+                                <td>${activity.RequiredTime}</td>
+                                <td>${activity.foodOptions}</td>
+                            </tr>
+                        `;
+							places.push(activity.places);
+						});
+
+						table += `
+                            </tbody>
+                        </table>
+                    `;
+
+						// Display the table in the results section
+						document.getElementById('itinerary-details').innerHTML = table;
 						document.getElementById('results').style.display = 'block';
+
+						// Enable the "Open Trip in Google Maps" button
+						const openMapsButton = document.getElementById('open-google-maps');
+						openMapsButton.style.display = 'block';
+
+						// Handle the click event of the "Open Trip in Google Maps" button
+						openMapsButton.addEventListener('click', function () {
+							const googleMapsUrl = generateGoogleMapsUrl(origin, places);
+							window.open(googleMapsUrl, '_blank');
+						});
 					})
 					.catch(error => {
 						console.error('There was a problem with the fetch operation:', error);
 					});
 			});
+
+			// Function to generate Google Maps URL
+			function generateGoogleMapsUrl(origin, places) {
+				const baseUrl = 'https://www.google.com/maps/dir/?api=1';
+				const originParam = `&origin=${encodeURIComponent(origin)}`;
+				const destination = `&destination=${encodeURIComponent(places[places.length - 1])}`;
+				const waypoints = places.slice(0, -1).map(place => encodeURIComponent(place)).join('|');
+				const waypointsParam = waypoints ? `&waypoints=${waypoints}` : '';
+				return `${baseUrl}${originParam}${destination}${waypointsParam}`;
+			}
 		});
 	</script>
+
+
 	<!-- End of JavaScript code -->
 
 </body>
